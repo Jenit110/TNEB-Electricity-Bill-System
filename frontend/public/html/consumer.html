@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Consumers Management</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    .button-group {
+      text-align: center;
+      margin: 15px 0;
+    }
+    .btn {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 5px;
+      margin: 5px;
+      cursor: pointer;
+      color: white;
+      font-size: 14px;
+    }
+    .btn-add { background: #28a745; }
+    .btn-enter { background: #007bff; }
+    .btn-back { background: #6c757d; }
+    table {
+      width: 90%;
+      margin: 20px auto;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background: #007bff;
+      color: white;
+    }
+    .form-container {
+      width: 90%;
+      margin: 20px auto;
+      padding: 15px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      display: none;
+    }
+    .form-container input {
+      padding: 8px;
+      margin: 5px;
+      width: calc(30% - 20px);
+    }  
+
+  </style>
+</head>
+<body>
+
+  <h1>Consumers Table</h1>
+
+  <!-- Buttons -->
+  <div class="button-group">
+    <button class="btn btn-add" onclick="showAddForm()">➕ Add</button>
+    <button class="btn btn-enter" onclick="goIndex()">📋 Enter</button>
+    <button class="btn btn-back" onclick="goLogin()">⬅ Back</button>
+  </div>
+
+  <!-- Add Consumer Form -->
+  <div id="addForm" class="form-container">
+    <h3>Add New Consumer</h3>
+    <input type="text" id="consumer_number" placeholder="Consumer Number" required>
+    <input type="text" id="name" placeholder="Name" required>
+    <input type="text" id="address" placeholder="Address" required>
+    <button class="btn btn-add" onclick="addConsumer()">Save</button>
+  </div>
+
+  <!-- Consumers Table -->
+  <table id="consumersTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Consumer Number</th>
+        <th>Name</th>
+        <th>Address</th>
+        <th>Created At</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const API_URL = "http://localhost:5000/api/consumers";
+
+    function showAddForm() {
+      document.getElementById("addForm").style.display = "block";
+    }
+
+    // ✅ Enter button → redirect to index.html
+    function goIndex() {
+      window.location.href = "index.html";
+    }
+
+    // ✅ Back button → redirect to login.html
+    function goLogin() {
+      window.location.href = "login.html";
+    }
+
+    // Fetch consumers (auto load on page open)
+    function loadConsumers() {
+      fetch(API_URL)
+        .then(res => res.json())
+        .then(data => {
+          const tbody = document.querySelector("#consumersTable tbody");
+          tbody.innerHTML = "";
+          data.forEach(consumer => {
+            const row = `
+              <tr>
+                <td>${consumer.id}</td>
+                <td>${consumer.consumer_number}</td>
+                <td>${consumer.name}</td>
+                <td>${consumer.address}</td>
+                <td>${consumer.created_at || ''}</td>
+              </tr>`;
+            tbody.innerHTML += row;
+          });
+        })
+        .catch(err => alert("Error loading consumers: " + err));
+    }
+
+    // Add new consumer
+    function addConsumer() {
+      const consumer_number = document.getElementById("consumer_number").value;
+      const name = document.getElementById("name").value;
+      const address = document.getElementById("address").value;
+
+      fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ consumer_number, name, address })
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert(data.message || "Consumer added");
+        document.getElementById("addForm").style.display = "none";
+        loadConsumers();
+      })
+      .catch(err => alert("Error adding consumer: " + err));
+    }
+
+    // Load table on page open
+    loadConsumers();
+  </script>
+
+</body>
+</html>

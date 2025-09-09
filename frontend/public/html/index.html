@@ -1,0 +1,192 @@
+<!-- tneb-calculator.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TNEB Electricity Bill Calculator (First & Second Reading)</title>
+    
+  <style>
+    :root{--accent:#0b6cff;--muted:#666}
+    body{font-family:Inter,Segoe UI,Arial;line-height:1.5;margin:0;background:#f6f8fb;color:#111}
+    .wrap{max-width:900px;margin:36px auto;padding:24px;background:white;border-radius:12px;box-shadow:0 8px 30px rgba(20,30,60,.08)}
+    h1{margin:0 0 12px;font-size:20px}
+    label{display:block;margin-top:12px;font-weight:600}
+    input[type="number"], select{width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;margin-top:6px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .btn{display:inline-block;margin-top:14px;padding:10px 14px;background:var(--accent);color:#fff;border-radius:8px;border:0;cursor:pointer}
+    .result{margin-top:18px;padding:14px;border-radius:10px;background:#fbfdff;border:1px solid #e6f0ff}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{padding:8px;border-bottom:1px dashed #e9eef8;text-align:left}
+    .muted{color:var(--muted);font-size:13px}
+    .small{font-size:13px;color:#333}
+    .slab {font-weight:700}
+    .flex{display:flex;gap:8px;align-items:center}
+    @media (max-width:640px){.row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+  
+  <div class="wrap">
+    <h1>TNEB Electricity Bill Calculator — First & Second Reading</h1>
+    <p class="muted">Enter previous (first) and current (second) meter readings. Calculator computes unit usage and slab-wise charges (domestic).</p>
+
+    <div>
+            
+      <!-- Consumer Number -->
+<div class="form-group">
+  <label for="consumerNumber">Consumer Number</label>
+  <input id="consumerNumber" type="text" class="form-control" placeholder="Enter Consumer Number" required />
+</div>
+
+
+      <label>First reading (previous) — kWh / units</label>
+      <input id="firstReading" type="number" min="0" value="350" />
+
+      <label>First reading (previous) — kWh / units</label>
+      <input id="firstReading" type="number" min="0" value="350" />
+
+      <label>Second reading (current) — kWh / units</label>
+      <input id="secondReading" type="number" min="0" value="700" />
+
+      <div class="row">
+        <div>
+          <label>Billing period (days) — optional</label>
+          <input id="days" type="number" min="1" value="60" />
+        </div>
+        <div>
+          <label>Consumer type</label>
+          <select id="consumerType">
+            <option value="domestic" selected>Domestic (Residential)</option>
+            <option value="commercial">Commercial (not implemented)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top:10px">
+        <button id="calcBtn" class="btn">Calculate Bill</button>
+        <button id="clearBtn" class="btn" style="background:#f1f1f1;color:#222;margin-left:8px">Clear</button>
+        <button id="backBtn" class="btn">Back</button>
+        
+      </div>
+    </div>
+
+    <div id="result" class="result" style="display:none;">
+      <div class="small">Units consumed: <strong id="unitsVal"></strong></div>
+      <table id="breakdownTable" aria-live="polite">
+        <thead><tr><th>Slab</th><th>Units</th><th>Rate (₹/unit)</th><th>Amount (₹)</th></tr></thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr><th colspan="3" style="text-align:right">Energy Charges</th><th id="energyTotal">0</th></tr>
+          <tr><th colspan="3" style="text-align:right">Fixed charge</th><th id="fixedCharge">0</th></tr>
+          <tr><th colspan="3" style="text-align:right">Other charges (e.g. surcharges)</th><th id="otherCharges">0</th></tr>
+          <tr style="font-size:16px"><th colspan="3" style="text-align:right">Grand Total</th><th id="grandTotal">0</th></tr>
+        </tfoot>
+      </table>
+      <div style="margin-top:16px; text-align:right;">
+        <button id="payNowBtn" class="btn" style="background:#055ffb;">Pay Now</button>
+      </div>
+
+      <p class="muted" style="margin-top:8px">Slab rates used: 0–100: ₹0, 101–400: ₹4.70, 401–500: ₹6.30, 501–600: ₹8.40, 601–800: ₹9.45, 801–1000: ₹10.50, &gt;1000: ₹11.55 per unit. (Public tariff tables / TNERC). :contentReference[oaicite:1]{index=1}</p>
+    </div>
+  </div>
+
+  <script>
+    // slab table definition (domestic/two-month style)
+    const SLABS = [
+      { to: 100, rate: 0.00 },
+      { to: 400, rate: 4.70 },
+      { to: 500, rate: 6.30 },
+      { to: 600, rate: 8.40 },
+      { to: 800, rate: 9.45 },
+      { to: 1000, rate: 10.50 },
+      { to: Infinity, rate: 11.55 }
+    ];
+
+    const calcBtn = document.getElementById('calcBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    calcBtn.addEventListener('click', doCalculate);
+    clearBtn.addEventListener('click', () => {
+      document.getElementById('firstReading').value = '';
+      document.getElementById('secondReading').value = '';
+      document.getElementById('result').style.display = 'none';
+    });
+
+    function doCalculate() {
+      const first = Number(document.getElementById('firstReading').value);
+      const second = Number(document.getElementById('secondReading').value);
+      if (isNaN(first) || isNaN(second)) { alert('Enter numeric readings'); return; }
+      if (second < first) { alert('Second (current) reading must be >= first (previous)'); return; }
+
+      const units = second - first;
+      const tbody = document.querySelector('#breakdownTable tbody');
+      tbody.innerHTML = '';
+
+      let remaining = units;
+      let lower = 0;
+      let energyTotal = 0;
+
+      for (let i = 0; i < SLABS.length && remaining > 0; i++) {
+        const slab = SLABS[i];
+        const slabUpper = slab.to;
+        const slabUnits = Math.max(0, Math.min(remaining, slabUpper - lower));
+        if (slabUnits > 0) {
+          const amt = slabUnits * slab.rate;
+          energyTotal += amt;
+          const tr = document.createElement('tr');
+          const slabLabel = (slabUpper===Infinity) ? `${lower+1}+` : `${lower+1}–${slabUpper}`;
+          tr.innerHTML = `<td class="slab">${slabLabel}</td><td>${slabUnits}</td><td>${slab.rate.toFixed(2)}</td><td>${amt.toFixed(2)}</td>`;
+          tbody.appendChild(tr);
+          remaining -= slabUnits;
+        }
+        lower = slabUpper;
+      }
+
+      // Example fixed charge logic (common approach): fixed charge depends on connected load; here we'll show a simple placeholder
+      const fixedCharge = calculateFixedCharge(units); // placeholder function
+
+      // example other charges (meter rent / electricity duty / surcharge). Adjust to match your state rules.
+      const otherCharges = +(energyTotal * 0.05).toFixed(2); // example: 5% surcharge (illustrative)
+
+      const grand = +(energyTotal + fixedCharge + otherCharges).toFixed(2);
+
+      document.getElementById('unitsVal').textContent = units + ' units';
+      document.getElementById('energyTotal').textContent = energyTotal.toFixed(2);
+      document.getElementById('fixedCharge').textContent = fixedCharge.toFixed(2);
+      document.getElementById('otherCharges').textContent = otherCharges.toFixed(2);
+      document.getElementById('grandTotal').textContent = grand.toFixed(2);
+
+      document.getElementById('result').style.display = 'block';
+    }
+
+    function calculateFixedCharge(units) {
+      // Simple example: small fixed charge for domestic consumers
+      // You can replace this with the exact fixed charge rule (depends on connected load / category)
+      if (units <= 100) return 20.00;
+      if (units <= 400) return 50.00;
+      return 100.00;
+    }
+    document.addEventListener("DOMContentLoaded", () => {
+  const payBtn = document.getElementById("payNowBtn");
+  if (payBtn) {
+    payBtn.addEventListener("click", () => {
+      window.location.href = "pay.html"; // ✅ redirects to paybill.html
+    });
+  }
+});
+
+
+
+    
+  </script>
+  <script>
+    
+  document.getElementById("backBtn").addEventListener("click", () => {
+    window.location.href = "login.html"; // ✅ redirects to login page
+  });
+</script>
+</body>
+</html>
+
+     

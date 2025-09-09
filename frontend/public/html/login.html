@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login & Register</title>
+  <style>
+  body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(to right, #6dd5fa, #ffffff);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+/* Form box */
+.form-box {
+  background: #fff;
+  padding: 30px;
+  border-radius: 18px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  width: 380px;
+  text-align: center;
+  transition: transform 0.3s ease-in-out;
+}
+.form-box:hover {
+  transform: translateY(-4px);
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 12px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-size: 16px;
+  font-weight: bold;
+  color: #555;
+  transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+  border-bottom: 3px solid #0066cc;
+  color: #0066cc;
+}
+
+/* Heading */
+h2 {
+  margin-bottom: 15px;
+  color: #004aad;
+}
+
+/* Form groups */
+.form-group {
+  margin-bottom: 18px;
+  text-align: left;
+}
+
+.form-group label {
+  font-weight: bold;
+  margin-bottom: 6px;
+  display: block;
+  color: #333;
+}
+
+.form-control {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: 0.3s;
+}
+
+.form-control:focus {
+  border-color: #0066cc;
+  outline: none;
+  box-shadow: 0 0 6px rgba(0, 102, 204, 0.3);
+}
+
+/* Buttons */
+.btn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(to right, #0077ff, #004aad);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.btn:hover {
+  background: linear-gradient(to right, #0056b3, #003380);
+  transform: scale(1.03);
+}
+
+/* Sections */
+.form-section {
+  display: none;
+}
+
+.form-section.active {
+  display: block;
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+  </style>
+</head>
+<body>
+  <div class="form-box">
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showForm('login')">Login</button>
+      <button class="tab-btn" onclick="showForm('register')">Register</button>
+    </div>
+
+    <!-- Login Form -->
+    <div id="loginForm" class="form-section active">
+      <h2>Login</h2>
+      <form id="login">
+        <div class="form-group">
+          <label for="loginUser">Email</label>
+          <input type="text" id="loginUser" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" class="form-control" required>
+        </div>
+        <button type="submit" class="btn">Login</button>
+      </form>
+    </div>
+
+    <!-- Register Form -->
+<div id="registerForm" class="form-section">
+  <h2>Register</h2>
+  <form id="register">
+    <div class="form-group">
+      <label for="regEmail">Email</label>
+      <input type="email" id="regEmail" class="form-control" required>
+    </div>
+    <div class="form-group">
+      <label for="regPhone">Phone Number</label>
+      <input type="tel" id="regPhone" class="form-control" pattern="[0-9]{10}" placeholder="Enter 10-digit number" required>
+    </div>
+    <div class="form-group">
+      <label for="regPassword">Password</label>
+      <input type="password" id="regPassword" class="form-control" required>
+    </div>
+    <button type="submit" class="btn">Register</button>
+  </form>
+</div>
+
+  </div>
+
+  <script>
+    function showForm(form) {
+      // Toggle form visibility
+      document.getElementById("loginForm").classList.remove("active");
+      document.getElementById("registerForm").classList.remove("active");
+      document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+
+      if (form === "login") {
+        document.getElementById("loginForm").classList.add("active");
+        document.querySelectorAll(".tab-btn")[0].classList.add("active");
+      } else {
+        document.getElementById("registerForm").classList.add("active");
+        document.querySelectorAll(".tab-btn")[1].classList.add("active");
+      }
+    }
+// ---------------- Register ----------------
+document.getElementById("register").addEventListener("submit", async function(e) {
+  e.preventDefault();
+
+  
+  const email = document.getElementById("regEmail").value.trim();
+  const phone = document.getElementById("regPhone").value.trim();
+  const password = document.getElementById("regPassword").value.trim();
+
+  if (!email || !phone || !password) {
+    return alert("All fields are required!");
+  }
+
+  try {
+    const res = await fetch("http://localhost:5000/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, phone, password })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      // ✅ Registration success
+      alert(data.message || "Registration successful! Please login.");
+      showForm("login"); // switch to login tab
+    } else {
+      // ❌ Registration failed
+      alert("Error: " + (data.error || data.message || "Something went wrong"));
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Server error. Please try again later.");
+  }
+});
+
+
+// ---------------- Login ----------------
+document.getElementById("login").addEventListener("submit", async function(e) {
+  e.preventDefault();
+
+  const email = document.getElementById("loginUser").value.trim(); // reuse same input field
+const password = document.getElementById("loginPassword").value.trim();
+
+if (!email || !password) {
+  return alert("Please enter email and password!");
+}
+
+try {
+  const res = await fetch("http://localhost:5000/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }) // send email instead of username
+  });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      // ✅ Login success
+      alert(data.message || "Login successful!");
+      window.location.href = "consumer.html"; // redirect after login
+    } else {
+      // ❌ Login failed
+      alert("Error: " + (data.error || data.message || "Invalid username or password"));
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Server error. Please try again later.");
+  }
+});
+
+  </script>
+</body>
+</html>
